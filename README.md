@@ -6,4 +6,9 @@ Generated a project from STM32CubeMX with the USB_device middleware set as HID. 
 
 # TODO
 
+- Send and receive signals
+- Connect sensors
+
+# Done
+
 - Add MIDI support
