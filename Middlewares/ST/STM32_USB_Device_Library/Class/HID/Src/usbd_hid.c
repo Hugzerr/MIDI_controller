@@ -91,12 +91,12 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum);
-#ifndef USE_USBD_COMPOSITE
+
 static uint8_t *USBD_HID_GetFSCfgDesc(uint16_t *length);
 static uint8_t *USBD_HID_GetHSCfgDesc(uint16_t *length);
 static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length);
 static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length);
-#endif /* USE_USBD_COMPOSITE  */
+
 /**
   * @}
   */
@@ -117,20 +117,14 @@ USBD_ClassTypeDef USBD_HID =
   NULL,              /* SOF */
   NULL,
   NULL,
-#ifdef USE_USBD_COMPOSITE
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-#else
   USBD_HID_GetHSCfgDesc,
   USBD_HID_GetFSCfgDesc,
   USBD_HID_GetOtherSpeedCfgDesc,
   USBD_HID_GetDeviceQualifierDesc,
-#endif /* USE_USBD_COMPOSITE  */
+
 };
 
-#ifndef USE_USBD_COMPOSITE
+
 /* USB HID device FS Configuration Descriptor */
 __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[] __ALIGN_END =
 {
@@ -286,9 +280,9 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[] __ALIGN_END =
   0x01,		// No. of Embedded MIDI OUT Jack: 1 (1Byte)
   0x03		// ID of Embedded MIDI OUT Jack: 3 (1Byte)
 };
-#endif /* USE_USBD_COMPOSITE  */
 
-#ifndef USE_USBD_COMPOSITE
+
+
 /* USB Standard Device Descriptor */
 __ALIGN_BEGIN static uint8_t USBD_HID_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_DESC] __ALIGN_END =
 {
@@ -303,7 +297,6 @@ __ALIGN_BEGIN static uint8_t USBD_HID_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_
   0x01,
   0x00,
 };
-#endif /* USE_USBD_COMPOSITE  */
 
 static uint8_t HIDInEpAdd = HID_EPIN_ADDR;
 
@@ -339,10 +332,6 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   pdev->pClassDataCmsit[pdev->classId] = (void *)hhid;
   pdev->pClassData = pdev->pClassDataCmsit[pdev->classId];
 
-#ifdef USE_USBD_COMPOSITE
-  /* Get the Endpoints addresses allocated for this class instance */
-  HIDInEpAdd  = USBD_CoreGetEPAdd(pdev, USBD_EP_IN, USBD_EP_TYPE_INTR, (uint8_t)pdev->classId);
-#endif /* USE_USBD_COMPOSITE */
 
   if (pdev->dev_speed == USBD_SPEED_HIGH)
   {
@@ -372,11 +361,6 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   UNUSED(cfgidx);
-
-#ifdef USE_USBD_COMPOSITE
-  /* Get the Endpoints addresses allocated for this class instance */
-  HIDInEpAdd  = USBD_CoreGetEPAdd(pdev, USBD_EP_IN, USBD_EP_TYPE_INTR, (uint8_t)pdev->classId);
-#endif /* USE_USBD_COMPOSITE */
 
   /* Close HID EPs */
   (void)USBD_LL_CloseEP(pdev, HIDInEpAdd);
@@ -522,25 +506,15 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
   * @param  ClassId: The Class ID
   * @retval status
   */
-#ifdef USE_USBD_COMPOSITE
-uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len, uint8_t ClassId)
-{
-  USBD_HID_HandleTypeDef *hhid = (USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[ClassId];
-#else
+
 uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len)
 {
   USBD_HID_HandleTypeDef *hhid = (USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-#endif /* USE_USBD_COMPOSITE */
 
   if (hhid == NULL)
   {
     return (uint8_t)USBD_FAIL;
   }
-
-#ifdef USE_USBD_COMPOSITE
-  /* Get the Endpoints addresses allocated for this class instance */
-  HIDInEpAdd = USBD_CoreGetEPAdd(pdev, USBD_EP_IN, USBD_EP_TYPE_INTR, ClassId);
-#endif /* USE_USBD_COMPOSITE */
 
   if (pdev->dev_state == USBD_STATE_CONFIGURED)
   {
@@ -582,7 +556,7 @@ uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev)
   return ((uint32_t)(polling_interval));
 }
 
-#ifndef USE_USBD_COMPOSITE
+
 /**
   * @brief  USBD_HID_GetCfgFSDesc
   *         return FS configuration descriptor
@@ -642,7 +616,6 @@ static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length)
   *length = (uint16_t)sizeof(USBD_HID_CfgDesc);
   return USBD_HID_CfgDesc;
 }
-#endif /* USE_USBD_COMPOSITE  */
 
 /**
   * @brief  USBD_HID_DataIn
@@ -661,7 +634,7 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   return (uint8_t)USBD_OK;
 }
 
-#ifndef USE_USBD_COMPOSITE
+
 /**
   * @brief  DeviceQualifierDescriptor
   *         return Device Qualifier descriptor
@@ -674,7 +647,7 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
 
   return USBD_HID_DeviceQualifierDesc;
 }
-#endif /* USE_USBD_COMPOSITE  */
+
 /**
   * @}
   */
