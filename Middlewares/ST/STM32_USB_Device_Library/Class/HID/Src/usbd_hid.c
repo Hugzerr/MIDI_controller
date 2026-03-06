@@ -343,7 +343,7 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   }
 
   /* Open EP IN */
-  (void)USBD_LL_OpenEP(pdev, HIDInEpAdd, USBD_EP_TYPE_INTR, HID_EPIN_SIZE);
+  (void)USBD_LL_OpenEP(pdev, HIDInEpAdd, USBD_EP_TYPE_BULK, 0x40);
   pdev->ep_in[HIDInEpAdd & 0xFU].is_used = 1U;
 
   hhid->state = USBD_HID_IDLE;
