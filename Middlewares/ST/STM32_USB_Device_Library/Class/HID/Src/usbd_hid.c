@@ -132,56 +132,159 @@ USBD_ClassTypeDef USBD_HID =
 
 #ifndef USE_USBD_COMPOSITE
 /* USB HID device FS Configuration Descriptor */
-__ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_END =
+__ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[] __ALIGN_END =
 {
-  0x09,                                               /* bLength: Configuration Descriptor size */
-  USB_DESC_TYPE_CONFIGURATION,                        /* bDescriptorType: Configuration */
-  USB_HID_CONFIG_DESC_SIZ,                            /* wTotalLength: Bytes returned */
-  0x00,
-  0x01,                                               /* bNumInterfaces: 1 interface */
-  0x01,                                               /* bConfigurationValue: Configuration value */
-  0x00,                                               /* iConfiguration: Index of string descriptor
-                                                         describing the configuration */
-#if (USBD_SELF_POWERED == 1U)
-  0xE0,                                               /* bmAttributes: Bus Powered according to user configuration */
-#else
-  0xA0,                                               /* bmAttributes: Bus Powered according to user configuration */
-#endif /* USBD_SELF_POWERED */
-  USBD_MAX_POWER,                                     /* MaxPower (mA) */
+  /* MIDI Adapter Configuration Descriptor: 9Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 37,38 */
+    0x09,		// Length of the Descriptor (1Byte)
+    0x02,		// Descriptor Type: Configuration (1Byte)
+    0x65,    	// Total Length of the config. block including this descriptor: length is 101 bytes (2bytes Low-byte first)
+    0x00,   	// Total Length high-byte, continuing from above
+    0x02,		// Number of Interfaces: 2 interfaces: Standard AC and Standard MIDI-streaming (1Byte)
+    0x01,		// Configuration Value: ID of this configuration is 1 (1Byte)
+    0x00,		// iConfiguration: Unused (1Byte)
+    0x80,		// bmAttributes:   BUS Powered and not Battery/Self powered and no remote wake-up (1Byte)
+    0x32,		// MaxPower = 100 mA, in steps of 2mA (1Byte)
 
-  /************** Descriptor of Joystick Mouse interface ****************/
-  /* 09 */
-  0x09,                                               /* bLength: Interface Descriptor size */
-  USB_DESC_TYPE_INTERFACE,                            /* bDescriptorType: Interface descriptor type */
-  0x00,                                               /* bInterfaceNumber: Number of Interface */
-  0x00,                                               /* bAlternateSetting: Alternate setting */
-  0x01,                                               /* bNumEndpoints */
-  0x03,                                               /* bInterfaceClass: HID */
-  0x01,                                               /* bInterfaceSubClass : 1=BOOT, 0=no boot */
-  0x02,                                               /* nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse */
-  0,                                                  /* iInterface: Index of string descriptor */
-  /******************** Descriptor of Joystick Mouse HID ********************/
-  /* 18 */
-  0x09,                                               /* bLength: HID Descriptor size */
-  HID_DESCRIPTOR_TYPE,                                /* bDescriptorType: HID */
-  0x11,                                               /* bcdHID: HID Class Spec release number */
-  0x01,
-  0x00,                                               /* bCountryCode: Hardware target country */
-  0x01,                                               /* bNumDescriptors: Number of HID class descriptors to follow */
-  0x22,                                               /* bDescriptorType */
-  HID_MOUSE_REPORT_DESC_SIZE,                         /* wItemLength: Total length of Report descriptor */
-  0x00,
-  /******************** Descriptor of Mouse endpoint ********************/
-  /* 27 */
-  0x07,                                               /* bLength: Endpoint Descriptor size */
-  USB_DESC_TYPE_ENDPOINT,                             /* bDescriptorType:*/
 
-  HID_EPIN_ADDR,                                      /* bEndpointAddress: Endpoint Address (IN) */
-  0x03,                                               /* bmAttributes: Interrupt endpoint */
-  HID_EPIN_SIZE,                                      /* wMaxPacketSize: 4 Bytes max */
-  0x00,
-  HID_FS_BINTERVAL,                                   /* bInterval: Polling Interval */
-  /* 34 */
+  /* MIDI Adapter Standard Audio Control (AC) Interface Descriptor: 9Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 38 */
+  0x09,		// Length of the Descriptor (1Byte)
+  0x04,		// Descriptor Type: Interface (1Byte)
+  0x00,		// Index of this interface (1Byte)
+  0x00,		// Alternate Setting: Index of this Setting (1Byte)
+  0x00,		// Number of End-points (1Byte)
+  0x01,		// Interface Class: Audio (1Byte)
+  0x01,		// Interface Sub-Class: Audio Control (1Byte)
+  0x00,		// Interface Protocol: Unused (1Byte)
+  0x00,		// iInterface: Unused (1Byte)
+
+
+  /* MIDI Adapter Class-specific AC Interface Descriptor: 9Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 39 */
+  0x09,		// Length of the Descriptor (1Byte)
+  0x24,		// Descriptor Type: Class specific interface (1Byte)
+  0x01,		// Descriptor Sub-type: Class Specific Interface Header (1Byte)
+  0x00,		// Class Specification Revision No.: 1.00 (2Bytes Low-byte first)
+  0x01,		// Class Specification revision No.: High-byte, continuing from above
+  0x09,		// Total Length of class-specific descriptor: 9-bytes (2Bytes Low-byte first)
+  0x00,		// Total Length of class-specific descriptor: High-byte, Continuing from above
+  0x01,     // Number of streaming interfaces: 1 (1Byte)
+  0x01,		// baInterfaceNr: MIDI-Streaming interface 1 belongs to this AudioControl interface. (1Byte)
+
+
+  /* MIDI Adapter Standard MIDI Streaming (MS) Interface Descriptor: 9Bytes  */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 39 */
+  0x09,		// Length of the Descriptor (1Byte)
+  0x04,		// Descriptor Type: Interface (1Byte)
+  0x01,		// Index of this interface (1Byte)
+  0x00,		// Alternate Setting: Index of this Setting (1Byte)
+  0x02,		// Number of End-points (1Byte)
+  0x01,		// Interface Class: Audio (1Byte)
+  0x03,		// Interface Sub-Class: MIDI-Streaming (1Byte)
+  0x00,		// Interface Protocol: Unused (1Byte)
+  0x00,		// iInterface: Unused (1Byte)
+
+
+  /*  MIDI Adapter Class-specific MS Interface Descriptor: 7Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 40 */
+  0x07,		// Length of the Descriptor (1Byte)
+  0x24,		// Descriptor Type: Class specific interface (1Byte)
+  0x01,		// Descriptor Sub-type: Class Specific Interface Header (1Byte)
+  0x00,		// Class Specification Revision No.: 1.00 (2Bytes Low-byte first)
+  0x01,		// Class Specification revision No.: High-byte, continuing from above
+  0x41,		// Total length of class specific descriptor: length is 65bytes (2bytes Low-byte first)
+  0x00,		// Total Length high-byte, continuing from above
+
+
+  /* MIDI Adapter MIDI IN Jack Descriptor (Embedded): 6Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 40 */
+  0x06,		// Length of the Descriptor (1Byte)
+  0x24,		// Descriptor Type: Class specific interface (1Byte)
+  0x02,		// Descriptor Sub-type: MIDI IN Jack (1Byte)
+  0x01,		// Jack Type: Embedded (1Byte)
+  0x01,		// Jack ID: 1 (1Byte)
+  0x00,		// iJack: Unused (1Byte)
+
+
+  /* MIDI Adapter MIDI IN Jack Descriptor (External): 6Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 40 */
+  0x06,		// Length of the Descriptor (1Byte)
+  0x24,		// Descriptor Type: Class specific interface (1Byte)
+  0x02,		// Descriptor Sub-type: MIDI IN Jack (1Byte)
+  0x02,		// Jack Type: External (1Byte)
+  0x02,		// Jack ID: 2 (1Byte)
+  0x00,		// iJack: Unused (1Byte)
+
+
+  /* MIDI Adapter MIDI OUT Jack Descriptor (Embedded): 9Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 41 */
+  0x09,		// Length of the Descriptor (1Byte)
+  0x24,		// Descriptor Type: Class specific interface (1Byte)
+  0x03,		// Descriptor Sub-type: MIDI OUT Jack (1Byte)
+  0x01,		// Jack Type: Embedded (1Byte)
+  0x03,		// Jack ID: 3 (1Byte)
+  0x01,		// Number of Input Pins for this jack: 1 (1Byte)
+  0x02,		// Source ID: ID of the Entity to which this Pin is connected: Connected to External MIDI In Jack??? (1Byte)
+  0x01,		// Source Pin: Output Pin number of the Entity to which this Input Pin is connected (1Byte)
+  0x00,		// iJack: Unused (1Byte)
+
+
+  /* MIDI Adapter MIDI OUT Jack Descriptor (External): 9Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 41 */
+  0x09,		// Length of the Descriptor (1Byte)
+  0x24,		// Descriptor Type: Class specific interface (1Byte)
+  0x03,		// Descriptor Sub-type: MIDI OUT Jack (1Byte)
+  0x02,		// Jack Type: External (1Byte)
+  0x04,		// Jack ID: 4 (1Byte)
+  0x01,		// Number of Input Pins for this jack: 1 (1Byte)
+  0x01,		// Source ID: ID of the Entity to which this Pin is connected: Connected to Embedded MIDI In Jack??? (1Byte)
+  0x01,		// Source Pin: Output Pin number of the Entity to which this Input Pin is connected (1Byte)
+  0x00,		// iJack: Unused (1Byte)
+
+
+  /* MIDI Adapter Standard Bulk OUT Endpoint Descriptor: 9Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 42 */
+  0x09,		// Length of the Descriptor (1Byte)
+  0x05,		// Descriptor Type: Endpoint (1Byte)
+  0x01,		// Endpoint Address: OUT Endpoint 1 (1Byte)
+  0x02,		// Attributes: Bulk, Not shared (1Byte)
+  0x40,		// Max Packet Size: 64 Bytes (2Bytes low-byte first)
+  0x00,		// Max Packet Size: high-byte, continuing from above
+  0x00,		// Interval: Ignored for bulk mode (1Byte)
+  0x00,		// Refresh: Unused (1Byte)
+  0x00,		// Synch. Address: Unused (1Byte)
+
+
+  /* MIDI Adapter Class-specific Bulk OUT Endpoint Descriptor: 5Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 42 */
+  0x05,		// Length of the Descriptor (1Byte)
+  0x25,		// Descriptor Type: Class Specific Endpoint descriptor (1Byte)
+  0x01,		// Descriptor Sub-type: MIDI-Streaming General sub-type (1Byte)
+  0x01,		// No. of Embedded MIDI IN Jack: 1 (1Byte)
+  0x01,		// ID of Embedded MIDI IN Jack: 1 (1Byte)
+
+
+  /* MIDI Adapter Standard Bulk IN Endpoint Descriptor: 9Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 42,43 */
+  0x09,		// Length of the Descriptor (1Byte)
+  0x05,		// Descriptor Type: Endpoint (1Byte)
+  0x81,		// Endpoint Address: IN Endpoint 1 (1Byte)
+  0x02,		// Attributes: Bulk, Not shared (1Byte)
+  0x40,		// Max Packet Size: 64 Bytes (2Bytes low-byte first)
+  0x00,		// Max Packet Size: high-byte, continuing from above
+  0x00,		// Interval: Ignored for bulk mode (1Byte)
+  0x00,		// Refresh: Unused (1Byte)
+  0x00,		// Synch. Address: Unused (1Byte)
+
+
+  /* MIDI Adapter Class-specific Bulk IN Endpoint Descriptor: 5Bytes */
+  /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 43 */
+  0x05,		// Length of the Descriptor (1Byte)
+  0x25,		// Descriptor Type: Class Specific Endpoint descriptor (1Byte)
+  0x01,		// Descriptor Sub-type: MIDI-Streaming General sub-type (1Byte)
+  0x01,		// No. of Embedded MIDI OUT Jack: 1 (1Byte)
+  0x03		// ID of Embedded MIDI OUT Jack: 3 (1Byte)
 };
 #endif /* USE_USBD_COMPOSITE  */
 

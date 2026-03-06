@@ -20,13 +20,12 @@
 #include "main.h"
 #include "string.h"
 #include "usb_device.h"
-#include "usbd_midi.h"
 #include <stdint.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-extern USBD_HandleTypeDef hUsbDeviceFS;
+#include "usbd_midi.h"
+#include "usbd_hid.h"
 
 /* USER CODE END Includes */
 
@@ -70,6 +69,13 @@ ETH_HandleTypeDef heth;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+
+/* USER CODE BEGIN PV */
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
+// MIDI Message arrays: 4Bytes
+uint8_t midiNoteOn[4];
+uint8_t midiNoteOff[4];
 
 /* USER CODE END PV */
 
@@ -125,49 +131,35 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
-  // Send note
-  uint8_t cable = 1;
-  uint8_t message = 9; // Note on
-  uint8_t code = message;
-  uint8_t channel = 1;
-  uint8_t messageByte1 = 57; // Note A
-  uint8_t messageByte2 = 100;
+  midiNoteOn[0] = 0x09;	// 0--> Cable Number 0, values can be 0 to F, 9 --> MIDI Note On Message
+  midiNoteOn[1] = 0x90;	// 9--> MIDI Note On, 0--> Channel Num. , values can be 0 to F
+  midiNoteOn[2] = 0x40;	// MIDI Note Value: here for demo purpose lets take 0x40 or 64
+  midiNoteOn[3] = 0x7F; // MIDI Note Velocity: Range 0 to 127, here Max value is used for demo
 
-  // Send control change
-  // uint8_t cable = 1;
-  // uint8_t message = 0xB;
-  // uint8_t code = message;
-  // uint8_t channel = 0;
-  // uint8_t messageByte1 = 55;
-  // uint8_t messageByte2 = 100;
-
-  // MIDI data is 4 bytes: Cable + CIN - Message (or Status) - Data 1 - Data 2 (they depend on the message type)
-  uint8_t packetsBuffer[4] = {
-    // cable - represents the physical/virtual input port number (0 - 15) of the device
-    // code - in general cases is equal to the midi message
-    (cable << 4) | code, // destination port - Not in MIDI standard
-    (message << 4) | channel, // Message: type of data (note, control change...) + channel number
-    messageByte1, // First data (ex: note number)
-    messageByte2, // Second data (ex: note velocity)
-  };
+  midiNoteOff[0] = 0x08;	// 0--> Cable Number 0, values can be 0 to F, 8 --> MIDI Note Off Message
+  midiNoteOff[1] = 0x80;	// 8--> MIDI Note Off, 0--> Channel Num. , values can be 0 to F
+  midiNoteOff[2] = 0x40;	// MIDI Note Value: here for demo purpose lets take 0x40 or 64
+  midiNoteOff[3] = 0x7F; // MIDI Note Velocity: Range 0 to 127, here Max value is used for demo
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (USBD_MIDI_GetState(&hUsbDeviceFS) != MIDI_IDLE) {}  // Wait idle
-  USBD_MIDI_SendPackets(&hUsbDeviceFS, packetsBuffer, 4);
-  
   while (1)
-  {
-    if(USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_IDLE) {
-        USBD_MIDI_SendPackets(&hUsbDeviceFS, packetsBuffer, 4);
-    }
-    HAL_Delay(50);
-
+  { 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    // Make sure the USB functions are not BUSY before sending the MIDI Message
+	  while( ((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == USBD_HID_BUSY ) {}
+	  USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&midiNoteOn, 4);
+	  HAL_Delay(500);
+
+	  while( ((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == USBD_HID_BUSY ) {}
+	  USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&midiNoteOff, 4);
+	  HAL_Delay(500);
+
   }
   /* USER CODE END 3 */
 }
