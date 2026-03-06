@@ -130,15 +130,15 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[] __ALIGN_END =
 {
   /* MIDI Adapter Configuration Descriptor: 9Bytes */
   /* Reference: https://www.usb.org/sites/default/files/midi10.pdf Page: 37,38 */
-    0x09,		// Length of the Descriptor (1Byte)
-    0x02,		// Descriptor Type: Configuration (1Byte)
-    0x65,    	// Total Length of the config. block including this descriptor: length is 101 bytes (2bytes Low-byte first)
-    0x00,   	// Total Length high-byte, continuing from above
-    0x02,		// Number of Interfaces: 2 interfaces: Standard AC and Standard MIDI-streaming (1Byte)
-    0x01,		// Configuration Value: ID of this configuration is 1 (1Byte)
-    0x00,		// iConfiguration: Unused (1Byte)
-    0x80,		// bmAttributes:   BUS Powered and not Battery/Self powered and no remote wake-up (1Byte)
-    0x32,		// MaxPower = 100 mA, in steps of 2mA (1Byte)
+  0x09,		// Length of the Descriptor (1Byte)
+  0x02,		// Descriptor Type: Configuration (1Byte)
+  0x65,    	// Total Length of the config. block including this descriptor: length is 101 bytes (2bytes Low-byte first)
+  0x00,   	// Total Length high-byte, continuing from above
+  0x02,		// Number of Interfaces: 2 interfaces: Standard AC and Standard MIDI-streaming (1Byte)
+  0x01,		// Configuration Value: ID of this configuration is 1 (1Byte)
+  0x00,		// iConfiguration: Unused (1Byte)
+  0x80,		// bmAttributes:   BUS Powered and not Battery/Self powered and no remote wake-up (1Byte)
+  0x32,		// MaxPower = 100 mA, in steps of 2mA (1Byte)
 
 
   /* MIDI Adapter Standard Audio Control (AC) Interface Descriptor: 9Bytes */

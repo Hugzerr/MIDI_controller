@@ -152,12 +152,12 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
     // Make sure the USB functions are not BUSY before sending the MIDI Message
-	  while( ((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == USBD_HID_BUSY ) {}
-	  USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&midiNoteOn, 4);
+	  while( USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
+	  USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&midiNoteOn, 4);
 	  HAL_Delay(500);
 
-	  while( ((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == USBD_HID_BUSY ) {}
-	  USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&midiNoteOff, 4);
+	  while(  USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
+	  USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&midiNoteOff, 4);
 	  HAL_Delay(500);
 
   }
