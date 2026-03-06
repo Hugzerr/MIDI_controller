@@ -800,6 +800,7 @@ uint8_t USBD_MIDI_SendPackets(USBD_HandleTypeDef  *pdev,
     if(hmidi->state == MIDI_IDLE)
     {
       hmidi->state = MIDI_BUSY;
+      // (void)USB_WritePacket((USB_OTG_GlobalTypeDef *)pdev, data,MIDI_EPIN_ADDR & EP_ADDR_MSK, (uint16_t)len, 0);
       USBD_LL_Transmit(pdev, MIDI_EPIN_ADDR, data, len);
     }
   }

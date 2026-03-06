@@ -20,9 +20,13 @@
 #include "main.h"
 #include "string.h"
 #include "usb_device.h"
+#include "usbd_midi.h"
+#include <stdint.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
+extern USBD_HandleTypeDef hUsbDeviceFS;
 
 /* USER CODE END Includes */
 
@@ -121,12 +125,46 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
+  // Send note
+  uint8_t cable = 1;
+  uint8_t message = 9; // Note on
+  uint8_t code = message;
+  uint8_t channel = 1;
+  uint8_t messageByte1 = 57; // Note A
+  uint8_t messageByte2 = 100;
+
+  // Send control change
+  // uint8_t cable = 1;
+  // uint8_t message = 0xB;
+  // uint8_t code = message;
+  // uint8_t channel = 0;
+  // uint8_t messageByte1 = 55;
+  // uint8_t messageByte2 = 100;
+
+  // MIDI data is 4 bytes: Cable + CIN - Message (or Status) - Data 1 - Data 2 (they depend on the message type)
+  uint8_t packetsBuffer[4] = {
+    // cable - represents the physical/virtual input port number (0 - 15) of the device
+    // code - in general cases is equal to the midi message
+    (cable << 4) | code, // destination port - Not in MIDI standard
+    (message << 4) | channel, // Message: type of data (note, control change...) + channel number
+    messageByte1, // First data (ex: note number)
+    messageByte2, // Second data (ex: note velocity)
+  };
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  while (USBD_MIDI_GetState(&hUsbDeviceFS) != MIDI_IDLE) {}  // Wait idle
+  USBD_MIDI_SendPackets(&hUsbDeviceFS, packetsBuffer, 4);
+  
   while (1)
   {
+    if(USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_IDLE) {
+        USBD_MIDI_SendPackets(&hUsbDeviceFS, packetsBuffer, 4);
+    }
+    HAL_Delay(50);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
