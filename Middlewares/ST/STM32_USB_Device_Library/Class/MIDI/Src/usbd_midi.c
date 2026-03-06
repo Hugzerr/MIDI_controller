@@ -636,16 +636,19 @@ static uint8_t  USBD_MIDI_Init (USBD_HandleTypeDef *pdev,
 {
   uint8_t ret = 0;
   
+  // Open enpoint that sends data to host
   USBD_LL_OpenEP(pdev,
                  MIDI_EPIN_ADDR,
                  USBD_EP_TYPE_BULK,
                  MIDI_EPIN_SIZE);  
-
+    
+  // Open enpoint that receives data from host
   USBD_LL_OpenEP(pdev,
                MIDI_EPOUT_ADDR,
                USBD_EP_TYPE_BULK,
                MIDI_EPOUT_SIZE);
   
+  //  Prepare the receiving endpoint with a buffer
   USBD_LL_PrepareReceive(pdev, 
                MIDI_EPOUT_ADDR,                                      
                usb_rx_buffer,
@@ -665,7 +668,7 @@ static uint8_t  USBD_MIDI_Init (USBD_HandleTypeDef *pdev,
 }
 
 /**
-  * @brief  USBD_MIDI_Init
+  * @brief  USBD_MIDI_DeInit
   *         DeInitialize the MIDI layer
   * @param  pdev: device instance
   * @param  cfgidx: Configuration index

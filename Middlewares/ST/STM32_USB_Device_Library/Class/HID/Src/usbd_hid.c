@@ -333,15 +333,6 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   pdev->pClassData = pdev->pClassDataCmsit[pdev->classId];
 
 
-  if (pdev->dev_speed == USBD_SPEED_HIGH)
-  {
-    pdev->ep_in[HIDInEpAdd & 0xFU].bInterval = HID_HS_BINTERVAL;
-  }
-  else   /* LOW and FULL-speed endpoints */
-  {
-    pdev->ep_in[HIDInEpAdd & 0xFU].bInterval = HID_FS_BINTERVAL;
-  }
-
   /* Open EP IN */
   (void)USBD_LL_OpenEP(pdev, HIDInEpAdd, USBD_EP_TYPE_BULK, 0x40);
   pdev->ep_in[HIDInEpAdd & 0xFU].is_used = 1U;
@@ -365,7 +356,6 @@ static uint8_t USBD_HID_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   /* Close HID EPs */
   (void)USBD_LL_CloseEP(pdev, HIDInEpAdd);
   pdev->ep_in[HIDInEpAdd & 0xFU].is_used = 0U;
-  pdev->ep_in[HIDInEpAdd & 0xFU].bInterval = 0U;
 
   /* Free allocated memory */
   if (pdev->pClassDataCmsit[pdev->classId] != NULL)
@@ -528,34 +518,6 @@ uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t 
   return (uint8_t)USBD_OK;
 }
 
-/**
-  * @brief  USBD_HID_GetPollingInterval
-  *         return polling interval from endpoint descriptor
-  * @param  pdev: device instance
-  * @retval polling interval
-  */
-uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev)
-{
-  uint32_t polling_interval;
-
-  /* HIGH-speed endpoints */
-  if (pdev->dev_speed == USBD_SPEED_HIGH)
-  {
-    /* Sets the data transfer polling interval for high speed transfers.
-     Values between 1..16 are allowed. Values correspond to interval
-     of 2 ^ (bInterval-1). This option (8 ms, corresponds to HID_HS_BINTERVAL */
-    polling_interval = (((1U << (HID_HS_BINTERVAL - 1U))) / 8U);
-  }
-  else   /* LOW and FULL-speed endpoints */
-  {
-    /* Sets the data transfer polling interval for low and full
-    speed transfers */
-    polling_interval =  HID_FS_BINTERVAL;
-  }
-
-  return ((uint32_t)(polling_interval));
-}
-
 
 /**
   * @brief  USBD_HID_GetCfgFSDesc
@@ -566,13 +528,6 @@ uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev)
   */
 static uint8_t *USBD_HID_GetFSCfgDesc(uint16_t *length)
 {
-  USBD_EpDescTypeDef *pEpDesc = USBD_GetEpDesc(USBD_HID_CfgDesc, HID_EPIN_ADDR);
-
-  if (pEpDesc != NULL)
-  {
-    pEpDesc->bInterval = HID_FS_BINTERVAL;
-  }
-
   *length = (uint16_t)sizeof(USBD_HID_CfgDesc);
   return USBD_HID_CfgDesc;
 }
@@ -586,12 +541,6 @@ static uint8_t *USBD_HID_GetFSCfgDesc(uint16_t *length)
   */
 static uint8_t *USBD_HID_GetHSCfgDesc(uint16_t *length)
 {
-  USBD_EpDescTypeDef *pEpDesc = USBD_GetEpDesc(USBD_HID_CfgDesc, HID_EPIN_ADDR);
-
-  if (pEpDesc != NULL)
-  {
-    pEpDesc->bInterval = HID_HS_BINTERVAL;
-  }
 
   *length = (uint16_t)sizeof(USBD_HID_CfgDesc);
   return USBD_HID_CfgDesc;
@@ -606,13 +555,6 @@ static uint8_t *USBD_HID_GetHSCfgDesc(uint16_t *length)
   */
 static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length)
 {
-  USBD_EpDescTypeDef *pEpDesc = USBD_GetEpDesc(USBD_HID_CfgDesc, HID_EPIN_ADDR);
-
-  if (pEpDesc != NULL)
-  {
-    pEpDesc->bInterval = HID_FS_BINTERVAL;
-  }
-
   *length = (uint16_t)sizeof(USBD_HID_CfgDesc);
   return USBD_HID_CfgDesc;
 }
