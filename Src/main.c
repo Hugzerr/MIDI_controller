@@ -25,7 +25,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_midi.h"
-#include "usbd_hid.h"
 
 /* USER CODE END Includes */
 
