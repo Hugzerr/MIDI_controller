@@ -104,6 +104,12 @@ void Error_Handler(void);
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
+#define RotEnc_A_Pin GPIO_PIN_0
+#define RotEnc_A_GPIO_Port GPIOD
+#define RotEnc_A_EXTI_IRQn EXTI0_IRQn
+#define RotEnc_B_Pin GPIO_PIN_1
+#define RotEnc_B_GPIO_Port GPIOD
+#define RotEnc_B_EXTI_IRQn EXTI1_IRQn
 #define RMII_TX_EN_Pin GPIO_PIN_11
 #define RMII_TX_EN_GPIO_Port GPIOG
 #define RMII_TXD0_Pin GPIO_PIN_13
