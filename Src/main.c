@@ -20,11 +20,12 @@
 #include "main.h"
 #include "string.h"
 #include "usb_device.h"
-#include <stdint.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_midi.h"
+#include <stdint.h>
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -35,6 +36,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define POT_SMOOTHING 2
 
 /* USER CODE END PD */
 
@@ -63,6 +65,8 @@ ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecr
 
 ETH_TxPacketConfig TxConfig;
 
+ADC_HandleTypeDef hadc1;
+
 ETH_HandleTypeDef heth;
 
 UART_HandleTypeDef huart3;
@@ -72,10 +76,6 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
-// MIDI Message arrays: 4Bytes
-uint8_t midiNoteOn[4];
-uint8_t midiNoteOff[4];
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,6 +84,7 @@ static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ETH_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -128,17 +129,16 @@ int main(void)
   MX_ETH_Init();
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+  uint16_t prev = 0;
 
-  midiNoteOn[0] = 0x09;	// 0--> Cable Number 0, values can be 0 to F, 9 --> MIDI Note On Message
-  midiNoteOn[1] = 0x90;	// 9--> MIDI Note On, 0--> Channel Num. , values can be 0 to F
-  midiNoteOn[2] = 0x40;	// MIDI Note Value: here for demo purpose lets take 0x40 or 64
-  midiNoteOn[3] = 0x7F; // MIDI Note Velocity: Range 0 to 127, here Max value is used for demo
+  uint8_t controlChange[4];
 
-  midiNoteOff[0] = 0x08;	// 0--> Cable Number 0, values can be 0 to F, 8 --> MIDI Note Off Message
-  midiNoteOff[1] = 0x80;	// 8--> MIDI Note Off, 0--> Channel Num. , values can be 0 to F
-  midiNoteOff[2] = 0x40;	// MIDI Note Value: here for demo purpose lets take 0x40 or 64
-  midiNoteOff[3] = 0x7F; // MIDI Note Velocity: Range 0 to 127, here Max value is used for demo
+  controlChange[0] = 0x0B; // Cable 0, Control change
+  controlChange[1] = 0xB0; // Control change, Channel 0
+  controlChange[2] = 0x37; // CC 55
+
 
   /* USER CODE END 2 */
 
@@ -150,15 +150,26 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    // Make sure the USB functions are not BUSY before sending the MIDI Message
-	  while( USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
-	  USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&midiNoteOn, 4);
-	  HAL_Delay(500);
-
-	  while(  USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
-	  USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&midiNoteOff, 4);
-	  HAL_Delay(500);
-
+    // Start ADC Conversion
+    HAL_ADC_Start(&hadc1);
+    // Poll ADC1 Perihperal & TimeOut = 1mSec
+    HAL_ADC_PollForConversion(&hadc1, 1); 
+    // Read The ADC Conversion Result & Map It To PWM DutyCycle
+    uint16_t AD_RES = HAL_ADC_GetValue(&hadc1);
+    uint8_t current =  AD_RES * 0.03125; // Convert to uint8 (0-127)
+    
+    // printf("pot = %d \r\n", AD_RES);
+    
+    // Send MIDI signal
+    if(current < prev - POT_SMOOTHING || current > prev + POT_SMOOTHING){
+      while( USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
+      controlChange[3] = current; // Value
+	    USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&controlChange, 4);
+      
+      prev = current;
+    }
+    
+    HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
@@ -218,6 +229,58 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -362,6 +425,12 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+// Redirect printf to UART
+int _write(int file, char *ptr, int len) {
+    HAL_UART_Transmit(&huart3, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+    return len;
+}
 
 /* USER CODE END 4 */
 
