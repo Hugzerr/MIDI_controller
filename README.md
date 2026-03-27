@@ -8,7 +8,6 @@ Generated a project from STM32CubeMX with the USB_device middleware set as HID. 
 
 - Receive signals
 - Connect sensors
-  - Switch
   - Push button
   - Rotary encoder
   - Optical encoder
@@ -18,6 +17,7 @@ Generated a project from STM32CubeMX with the USB_device middleware set as HID. 
 - Sensors
   - Rotary potentiometer (CC 55)
   - Fader (CC 56) - same code as rotary pot
+  - Switch (CC 57)
 - Add MIDI support
   - MIDI middleware based on modded HID
 - Send midi messages

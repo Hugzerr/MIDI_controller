@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stm32f7xx_hal.h"
+#include "stm32f7xx_hal_gpio.h"
 #include "string.h"
 #include "usb_device.h"
 
@@ -65,8 +67,6 @@ ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecr
 
 ETH_TxPacketConfig TxConfig;
 
-ADC_HandleTypeDef hadc1;
-
 ETH_HandleTypeDef heth;
 
 UART_HandleTypeDef huart3;
@@ -84,7 +84,6 @@ static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ETH_Init(void);
 static void MX_USART3_UART_Init(void);
-static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -129,15 +128,14 @@ int main(void)
   MX_ETH_Init();
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
-  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  uint16_t prev = 0;
 
   uint8_t controlChange[4];
 
   controlChange[0] = 0x0B; // Cable 0, Control change
   controlChange[1] = 0xB0; // Control change, Channel 0
-  controlChange[2] = 0x38; // CC 56
+  controlChange[2] = 0x38; // CC 57
+  controlChange[3] = 0x7F; // 127
 
 
   /* USER CODE END 2 */
@@ -150,26 +148,13 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    // Start ADC Conversion
-    HAL_ADC_Start(&hadc1);
-    // Poll ADC1 Perihperal & TimeOut = 1mSec
-    HAL_ADC_PollForConversion(&hadc1, 1); 
-    // Read The ADC Conversion Result & Map It To PWM DutyCycle
-    uint16_t AD_RES = HAL_ADC_GetValue(&hadc1);
-    uint8_t current =  AD_RES * 0.03125; // Convert to uint8 (0-127)
-    
-    printf("pot = %d \r\n", AD_RES);
-    
-    // Send MIDI signal
-    if(current < prev - POT_SMOOTHING || current > prev + POT_SMOOTHING){
-      while( USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
-      controlChange[3] = current; // Value
-	    USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&controlChange, 4);
-      
-      prev = current;
+    if(HAL_GPIO_ReadPin(Switch_GPIO_Port, Switch_Pin) == GPIO_PIN_RESET){
+      while(USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
+
+      USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&controlChange, 4);
+
+      HAL_Delay(200);
     }
-    
-    HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
@@ -229,58 +214,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC1_Init(void)
-{
-
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC1_Init 1 */
-
-  /* USER CODE END ADC1_Init 1 */
-
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
@@ -398,6 +331,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Switch_Pin */
+  GPIO_InitStruct.Pin = Switch_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(Switch_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
   GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin|LD2_Pin;
