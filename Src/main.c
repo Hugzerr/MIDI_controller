@@ -36,7 +36,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define POT_SMOOTHING 2
+#define POT_SMOOTHING 1
 
 /* USER CODE END PD */
 
@@ -137,7 +137,7 @@ int main(void)
 
   controlChange[0] = 0x0B; // Cable 0, Control change
   controlChange[1] = 0xB0; // Control change, Channel 0
-  controlChange[2] = 0x37; // CC 55
+  controlChange[2] = 0x38; // CC 56
 
 
   /* USER CODE END 2 */
@@ -158,7 +158,7 @@ int main(void)
     uint16_t AD_RES = HAL_ADC_GetValue(&hadc1);
     uint8_t current =  AD_RES * 0.03125; // Convert to uint8 (0-127)
     
-    // printf("pot = %d \r\n", AD_RES);
+    printf("pot = %d \r\n", AD_RES);
     
     // Send MIDI signal
     if(current < prev - POT_SMOOTHING || current > prev + POT_SMOOTHING){
