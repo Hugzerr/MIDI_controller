@@ -54,9 +54,18 @@ UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 extern USBD_HandleTypeDef hUsbDeviceFS;
-uint8_t turnDetected = 0;
-uint8_t rotationdirection = 0;
 int bounceTime = 0;
+
+uint8_t controlChange[4];
+
+struct encoderData {
+  int position;
+  uint8_t turnDetected;
+  uint8_t direction;
+  int bounceTime;
+};
+
+struct encoderData encoders[3];
 
 /* USER CODE END PV */
 
@@ -74,19 +83,58 @@ static void MX_ADC3_Init(void);
 /* USER CODE BEGIN 0 */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-  int DT_state = HAL_GPIO_ReadPin(Rot_DT_GPIO_Port, Rot_DT_Pin);
-  // On CLK rising edge (with 5ms debounce)
   int tick = HAL_GetTick();
-  if(GPIO_Pin == Rot_CLK_Pin && tick - bounceTime > BOUNCE_DELAY){
-    bounceTime = tick;
-    // Check DT value to get rotation direction
-    if(DT_state == GPIO_PIN_SET){
-      rotationdirection = 1;
-    } else {
-      rotationdirection = 0;
+  if(GPIO_PIN == EXTI1_Pin || GPIO_PIN == EXTI2_Pin){
+    struct encoderData *encoder = &encoders[0];
+        
+    // On CLK rising edge (with 5ms debounce)
+    if(GPIO_Pin == EXTI1_Pin && tick - encoder.bounceTime > BOUNCE_DELAY){
+      encoder.bounceTime = tick;
+      // Check DT value to get rotation direction
+      int DT_state = HAL_GPIO_ReadPin(GPIOD, EXTI2_Pin);
+      if(DT_state == GPIO_PIN_SET){
+        encoder.direction = 1;
+      } else {
+        encoder.direction = 0;
+      }
+      encoder.turnDetected = 1;
+    } else if (GPIO_Pin == EXTI2_Pin && tick - encoder.bounceTime > BOUNCE_DELAY){
+      encoder.bounceTime = tick;
+      // Check DT value to get rotation direction
+      int DT_state = HAL_GPIO_ReadPin(GPIOD, EXTI1_Pin);
+      if(DT_state == GPIO_PIN_SET){
+        encoder.direction = 1;
+      } else {
+        encoder.direction = 0;
+      }
+      encoder.turnDetected = 1;
     }
-    turnDetected = 1;
   }
+}
+
+void sendMIDI(uint8_t cc, uint8_t data){
+  controlChange[2] = cc;
+  controlChange[3] = data;
+
+  while(USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
+
+  USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&controlChange, 4);
+}
+
+void readRotaryEncoder(int encoderID){
+  struct encoderData *encoder = &encoders[encoderID];
+  if(encoder.turnDetected){
+      if(encoder.direction){
+        encoder.position++;
+      }else{
+        encoder.position--;
+      }
+      encoder.turnDetected = 0;
+
+      sendMIDI(59, encoder.position + 64);
+
+      HAL_Delay(200);
+    }
 }
 
 /* USER CODE END 0 */
@@ -128,20 +176,9 @@ int main(void)
   MX_ADC3_Init();
   /* USER CODE BEGIN 2 */
 
-  uint8_t controlChange[4];
 
   controlChange[0] = 0x0B; // Cable 0, Control change
   controlChange[1] = 0xB0; // Control change, Channel 0
-  controlChange[2] = 0x40; // CC 58
-
-  uint8_t controlChangeSW[4];
-
-  controlChangeSW[0] = 0x0B; // Cable 0, Control change
-  controlChangeSW[1] = 0xB0; // Control change, Channel 0
-  controlChangeSW[2] = 0x41; // CC 59
-
-
-  int RotaryPosition = 0;
 
 
   /* USER CODE END 2 */
@@ -155,28 +192,24 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
     if(HAL_GPIO_ReadPin(Rot_Switch_GPIO_Port, Rot_Switch_Pin) == GPIO_PIN_RESET){
-      while(USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
-
-      USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&controlChangeSW, 4);
+      sendMIDI(58, 0);
 
       HAL_Delay(200);
     }
 
-    if(turnDetected){
-      if(rotationdirection){
-        RotaryPosition++;
-      }else{
-        RotaryPosition--;
-      }
-      turnDetected = 0;
+    // if(turnDetected){
+    //   if(rotationdirection){
+    //     RotaryPosition++;
+    //   }else{
+    //     RotaryPosition--;
+    //   }
+    //   turnDetected = 0;
 
-      controlChange[3] = RotaryPosition + 64; 
-      while(USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
+    //   sendMIDI(59, RotaryPosition + 64);
 
-      USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&controlChange, 4);
+    //   HAL_Delay(200);
+    // }
 
-      HAL_Delay(200);
-    }
   }
   /* USER CODE END 3 */
 }
