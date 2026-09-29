@@ -64,6 +64,8 @@ void Error_Handler(void);
 #define USER_Btn_GPIO_Port GPIOC
 #define ADC4_Pin GPIO_PIN_3
 #define ADC4_GPIO_Port GPIOF
+#define ADC7_Pin GPIO_PIN_4
+#define ADC7_GPIO_Port GPIOF
 #define ADC5_Pin GPIO_PIN_5
 #define ADC5_GPIO_Port GPIOF
 #define ADC9_Pin GPIO_PIN_7
@@ -140,8 +142,6 @@ void Error_Handler(void);
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
-#define ADC7_Pin GPIO_PIN_11
-#define ADC7_GPIO_Port GPIOC
 #define EXTI1_Pin GPIO_PIN_2
 #define EXTI1_GPIO_Port GPIOD
 #define EXTI6_Pin GPIO_PIN_3

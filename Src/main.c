@@ -63,9 +63,14 @@ struct encoderData {
   uint8_t turnDetected;
   uint8_t direction;
   int bounceTime;
+  int counter;
+  int prevCounter;
 };
 
 struct encoderData encoders[3];
+
+uint8_t switchs[11];
+uint16_t pots[10];
 
 /* USER CODE END PV */
 
@@ -83,58 +88,71 @@ static void MX_ADC3_Init(void);
 /* USER CODE BEGIN 0 */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-  int tick = HAL_GetTick();
-  if(GPIO_PIN == EXTI1_Pin || GPIO_PIN == EXTI2_Pin){
-    struct encoderData *encoder = &encoders[0];
-        
-    // On CLK rising edge (with 5ms debounce)
-    if(GPIO_Pin == EXTI1_Pin && tick - encoder.bounceTime > BOUNCE_DELAY){
-      encoder.bounceTime = tick;
-      // Check DT value to get rotation direction
-      int DT_state = HAL_GPIO_ReadPin(GPIOD, EXTI2_Pin);
-      if(DT_state == GPIO_PIN_SET){
-        encoder.direction = 1;
-      } else {
-        encoder.direction = 0;
+  // On rising edge
+  // Switch statement
+  switch (GPIO_Pin) {
+  case EXTI1_Pin:
+    if(HAL_GPIO_ReadPin(GPIOD, EXTI2_Pin) == GPIO_PIN_RESET){
+        encoders[0].counter++;
       }
-      encoder.turnDetected = 1;
-    } else if (GPIO_Pin == EXTI2_Pin && tick - encoder.bounceTime > BOUNCE_DELAY){
-      encoder.bounceTime = tick;
-      // Check DT value to get rotation direction
-      int DT_state = HAL_GPIO_ReadPin(GPIOD, EXTI1_Pin);
-      if(DT_state == GPIO_PIN_SET){
-        encoder.direction = 1;
-      } else {
-        encoder.direction = 0;
+      else {
+        encoders[0].counter--;
       }
-      encoder.turnDetected = 1;
+    break;
+  case EXTI2_Pin:
+    if(HAL_GPIO_ReadPin(GPIOD, EXTI1_Pin) == GPIO_PIN_RESET){
+      encoders[0].counter--;
     }
+    else {
+      encoders[0].counter++;
+    }
+    break;
+  case EXTI3_Pin:
+    if(HAL_GPIO_ReadPin(GPIOD, EXTI4_Pin) == GPIO_PIN_RESET){
+        encoders[1].counter++;
+      }
+      else {
+        encoders[1].counter--;
+      }
+    break;
+  case EXTI4_Pin:
+    if(HAL_GPIO_ReadPin(GPIOD, EXTI3_Pin) == GPIO_PIN_RESET){
+      encoders[1].counter--;
+    }
+    else {
+      encoders[1].counter++;
+    }
+    break;
+  case EXTI5_Pin:
+    if(HAL_GPIO_ReadPin(GPIOD, EXTI6_Pin) == GPIO_PIN_RESET){
+        encoders[2].counter++;
+      }
+      else {
+        encoders[2].counter--;
+      }
+    break;
+  case EXTI6_Pin:
+    if(HAL_GPIO_ReadPin(GPIOD, EXTI5_Pin) == GPIO_PIN_RESET){
+      encoders[2].counter--;
+    }
+    else {
+      encoders[2].counter++;
+    }
+    break;
+  default:
+      break;
   }
+  return;
 }
 
 void sendMIDI(uint8_t cc, uint8_t data){
+  printf("CC %d - val= %d\r\n", cc , data),
   controlChange[2] = cc;
   controlChange[3] = data;
 
   while(USBD_MIDI_GetState(&hUsbDeviceFS) == MIDI_BUSY ) {}
 
   USBD_MIDI_SendPackets(&hUsbDeviceFS, (uint8_t *)&controlChange, 4);
-}
-
-void readRotaryEncoder(int encoderID){
-  struct encoderData *encoder = &encoders[encoderID];
-  if(encoder.turnDetected){
-      if(encoder.direction){
-        encoder.position++;
-      }else{
-        encoder.position--;
-      }
-      encoder.turnDetected = 0;
-
-      sendMIDI(59, encoder.position + 64);
-
-      HAL_Delay(200);
-    }
 }
 
 /* USER CODE END 0 */
@@ -191,25 +209,70 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    if(HAL_GPIO_ReadPin(Rot_Switch_GPIO_Port, Rot_Switch_Pin) == GPIO_PIN_RESET){
+    // Switchs
+    if(HAL_GPIO_ReadPin(BTN1_GPIO_Port, BTN1_Pin) == GPIO_PIN_RESET){
+      sendMIDI(50, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN2_GPIO_Port, BTN2_Pin) == GPIO_PIN_RESET){
+      sendMIDI(51, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN3_GPIO_Port, BTN3_Pin) == GPIO_PIN_RESET){
+      sendMIDI(52, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN4_GPIO_Port, BTN4_Pin) == GPIO_PIN_RESET){
+      sendMIDI(53, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN5_GPIO_Port, BTN5_Pin) == GPIO_PIN_RESET){
+      sendMIDI(54, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN6_GPIO_Port, BTN6_Pin) == GPIO_PIN_RESET){
+      sendMIDI(55, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN7_GPIO_Port, BTN7_Pin) == GPIO_PIN_RESET){
+      sendMIDI(56, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN8_GPIO_Port, BTN8_Pin) == GPIO_PIN_RESET){
+      sendMIDI(57, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN9_GPIO_Port, BTN9_Pin) == GPIO_PIN_RESET){
       sendMIDI(58, 0);
-
-      HAL_Delay(200);
+    }
+    if(HAL_GPIO_ReadPin(BTN10_GPIO_Port, BTN10_Pin) == GPIO_PIN_RESET){
+      sendMIDI(59, 0);
+    }
+    if(HAL_GPIO_ReadPin(BTN11_GPIO_Port, BTN11_Pin) == GPIO_PIN_RESET){
+      sendMIDI(60, 0);
     }
 
-    // if(turnDetected){
-    //   if(rotationdirection){
-    //     RotaryPosition++;
-    //   }else{
-    //     RotaryPosition--;
-    //   }
-    //   turnDetected = 0;
 
-    //   sendMIDI(59, RotaryPosition + 64);
+    // Rotary encoders
+    int i;
+    for (i = 0; i < 3; i++) {      
+      struct encoderData *encoder = &encoders[i];
+      if(encoder->counter != encoder->prevCounter){
+        sendMIDI(61 + i, 64 - (encoder->counter - encoder->prevCounter));
+        HAL_Delay(1); // TODO fixed rate
+      }
+      encoder->prevCounter = encoder->counter;
+    }
 
-    //   HAL_Delay(200);
-    // }
+    // Pots
+    for (i=0; i < 10; i++){
+      // Scan & discontinuous conversion mode (trigger each conversion)
+      HAL_ADC_Start(&hadc3); // Start ADC Conversion
+      HAL_ADC_PollForConversion(&hadc3, 1); // Poll ADC1 Perihperal & TimeOut = 1mSec
+      uint16_t AD_RES = HAL_ADC_GetValue(&hadc3); // Read The ADC Conversion Result
+      
+      int current =  (int)(AD_RES * 0.03125); // Convert to uint8 (0-127)
+      int prev = pots[i];
 
+      if(current < prev - POT_SMOOTHING || current > prev + POT_SMOOTHING){
+        sendMIDI(64 + i, current);
+        pots[i] = (uint8_t)current;
+      }
+    }
+    HAL_ADC_Stop(&hadc3);
+    
   }
   /* USER CODE END 3 */
 }
@@ -292,15 +355,16 @@ static void MX_ADC3_Init(void)
   /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
   */
   hadc3.Instance = ADC3;
-  hadc3.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc3.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8;
   hadc3.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc3.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc3.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc3.Init.ContinuousConvMode = DISABLE;
-  hadc3.Init.DiscontinuousConvMode = DISABLE;
-  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-  hadc3.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_EXT_IT11;
+  hadc3.Init.DiscontinuousConvMode = ENABLE;
+  hadc3.Init.NbrOfDiscConversion = 1;
+  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc3.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc3.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc3.Init.NbrOfConversion = 1;
+  hadc3.Init.NbrOfConversion = 10;
   hadc3.Init.DMAContinuousRequests = DISABLE;
   hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc3) != HAL_OK)
@@ -310,9 +374,90 @@ static void MX_ADC3_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Channel = ADC_CHANNEL_3;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_10;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_13;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_15;
+  sConfig.Rank = ADC_REGULAR_RANK_5;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Rank = ADC_REGULAR_RANK_6;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_14;
+  sConfig.Rank = ADC_REGULAR_RANK_7;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Rank = ADC_REGULAR_RANK_8;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = ADC_REGULAR_RANK_9;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Rank = ADC_REGULAR_RANK_10;
   if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -386,11 +531,11 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : USER_Btn_Pin ADC7_Pin */
-  GPIO_InitStruct.Pin = USER_Btn_Pin|ADC7_Pin;
+  /*Configure GPIO pin : USER_Btn_Pin */
+  GPIO_InitStruct.Pin = USER_Btn_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RMII_MDC_Pin RMII_RXD0_Pin RMII_RXD1_Pin */
   GPIO_InitStruct.Pin = RMII_MDC_Pin|RMII_RXD0_Pin|RMII_RXD1_Pin;
@@ -454,7 +599,7 @@ static void MX_GPIO_Init(void)
                            EXTI3_Pin EXTI2_Pin */
   GPIO_InitStruct.Pin = EXTI1_Pin|EXTI6_Pin|EXTI5_Pin|EXTI4_Pin
                           |EXTI3_Pin|EXTI2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
@@ -481,8 +626,8 @@ static void MX_GPIO_Init(void)
 
 // Redirect printf to UART
 int _write(int file, char *ptr, int len) {
-    HAL_UART_Transmit(&huart3, (uint8_t*)ptr, len, HAL_MAX_DELAY);
-    return len;
+  HAL_UART_Transmit(&huart3, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+  return len;
 }
 
 /* USER CODE END 4 */
